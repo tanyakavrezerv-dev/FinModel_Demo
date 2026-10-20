@@ -71,7 +71,12 @@ html{-webkit-text-size-adjust:100%}
 @media(max-width:980px){.grid{grid-template-columns:1fr}.panel{position:static;order:-1}}
 </style></head><body><div class="wrap">
 <header><h1>Финансовая модель компании</h1>
-<nav><button class="on" data-t="d">Дашборд</button><button data-t="r">ОПиУ и ДДС</button><button data-t="n">Записка</button></nav></header>
+<nav>
+  <button class="on" data-t="d">Дашборд</button>
+  <button data-t="r">ОПиУ и ДДС</button>
+  <!-- Вкладка временно скрыта -->
+  <button data-t="n" style="display: none;">Записка</button>
+</nav></header>
 
 <section id="d"><div class="grid">
 <div><div class="cards" id="cards"></div>
@@ -97,7 +102,7 @@ html{-webkit-text-size-adjust:100%}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-// В innerHTML попадают только числа, отформатированные кодом, и статичные подписи. Ввод пользователя разбирается через parseFloat и ограничивается min/max.
+// Стартовые значения на случай, если таблица недоступна
 const D={start:'2025-09-04',H:24,traffic:500,conv:25,check:250,hours:12,days:26,cogs:35,mkt:0.5,retail:80,deliv:20,disc:30};
 const K={fee:.2,pay:290000,rent:102000,util:12000,adm:10000,capex:1061500,life:84,dpo:20,usn:.06,cap:1000};
 const F=[['start','Дата старта проекта','date'],['H','Горизонт планирования, мес',1,1,24],['traffic','Трафик, чел/час',1,0,1e5],['conv','Конверсия в покупку, %',.1,0,100],['check','Средний чек, ₽',1,0,1e6],['hours','Часы работы в день',.5,0,24],['days','Рабочих дней в месяце',1,0,31],['cogs','Доля себестоимости, %',.1,0,100],['mkt','Маркетинг, ₽/мес',.5,0,1e8],['retail','Доля розницы, %',1,0,100],['deliv','Доля доставки, %',1,0,100],['disc','Ставка дисконтирования, % годовых',1,0,500]];
@@ -183,25 +188,21 @@ function render(){
  if(!window.Chart)return;
  Chart.defaults.color=css('--mu');Chart.defaults.borderColor=css('--bd');Chart.defaults.font.family='Montserrat,system-ui,sans-serif';
  const ac=css('--ac'),bad=css('--bad'),ok=css('--ok'),A={responsive:true,maintainAspectRatio:false,animation:false},m1=v=>L(v/1e6,1);
- // 1 водопад
  const st=[['Выручка',o.rev],['Сырьё',o.cr],['Упаковка, санитария, логистика',o.pk+o.sn+o.lg],['Комиссии',o.fee],['ФОТ',o.pay],['Аренда и коммунальные',o.rent+o.util],['Маркетинг и админ',o.mkt+o.adm],['Амортизация',o.dep],['УСН',o.tax]];
  let run=o.rev;const wf=[[0,o.rev]];st.slice(1).forEach(s=>{wf.push([run-s[1],run]);run-=s[1]});wf.push([0,o.np]);
  mk('c1',{type:'bar',data:{labels:[...st.map(s=>s[0]),'Чистая прибыль'],datasets:[{data:wf,backgroundColor:wf.map((_,i)=>i===0||i===wf.length-1?ac:bad)}]},
   options:{...A,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>rub(Math.abs(c.raw[1]-c.raw[0]))}}},scales:{y:{ticks:{callback:m1},title:{display:true,text:'млн ₽'}},x:{ticks:{maxRotation:60,minRotation:45,font:{size:10}}}}}});
- // 2 денежный поток
  mk('c2',{type:'bar',data:{labels:M.map((_,t)=>ml(t)),datasets:[{label:'Чистый ДП, ₽',data:net,backgroundColor:ac,yAxisID:'y'},{type:'line',label:'Остаток на конец, ₽',data:M.map(m=>m.end),borderColor:ok,backgroundColor:ok,yAxisID:'y1',pointRadius:M.map((_,i)=>i===pb-1?7:2),tension:.2}]},
   options:{...A,scales:{y:{ticks:{callback:m1},title:{display:true,text:'ДП, млн ₽'}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{callback:m1},title:{display:true,text:'остаток, млн ₽'}},x:{ticks:{maxRotation:60,minRotation:45,font:{size:10}}}},plugins:{legend:{position:'bottom'}}}});
- // 3 структура затрат
  const sc=[['Сырьё',o.cr],['Упаковка',o.pk],['Санитария',o.sn],['Логистика сырья',o.lg],['Комиссии агрегаторов',o.fee],['ФОТ',o.pay],['Аренда',o.rent],['Коммунальные',o.util],['Маркетинг и админ',o.mkt+o.adm],['Амортизация',o.dep],['УСН',o.tax]].map(s=>[s[0],o.rev?s[1]/o.rev*100:0]).sort((a,b)=>b[1]-a[1]);
  mk('c3',{type:'bar',data:{labels:sc.map(s=>s[0]),datasets:[{data:sc.map(s=>s[1]),backgroundColor:ac}]},options:{...A,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>L(c.raw,1)+'%'}}},scales:{x:{ticks:{callback:v=>v+'%'}}}}});
- // 4 торнадо
  const dr=[['traffic','Трафик'],['conv','Конверсия'],['check','Средний чек'],['cogs','Себестоимость'],['hours','Часы работы'],['days','Рабочие дни']];
  const sn=dr.map(([k,l])=>({l,lo:calc({...p,[k]:p[k]*.9}).o.np-o.np,hi:calc({...p,[k]:p[k]*1.1}).o.np-o.np})).sort((a,b)=>Math.max(Math.abs(b.lo),Math.abs(b.hi))-Math.max(Math.abs(a.lo),Math.abs(a.hi)));
  mk('c4',{type:'bar',data:{labels:sn.map(s=>s.l),datasets:[{label:'-10% параметра',data:sn.map(s=>s.lo),backgroundColor:bad},{label:'+10% параметра',data:sn.map(s=>s.hi),backgroundColor:ok}]},
   options:{...A,indexAxis:'y',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.dataset.label+': '+rub(c.raw)}}},scales:{x:{stacked:true,ticks:{callback:m1},title:{display:true,text:'изменение прибыли в месяц, млн ₽'}},y:{stacked:true}}}});
  mk('c5',{type:'line',data:{labels:M.map((_,t)=>ml(t)),datasets:[{label:'Накопленный операционный поток',data:cop,borderColor:ac,backgroundColor:ac,pointRadius:cop.map((_,i)=>i===pS-1?7:2),tension:.15},{label:'То же с дисконтированием',data:cdi,borderColor:ok,backgroundColor:ok,borderDash:[6,4],pointRadius:cdi.map((_,i)=>i===pD-1?7:2),tension:.15},{label:'Инвестиции в оборудование',data:M.map(()=>inv),borderColor:bad,backgroundColor:bad,borderDash:[2,3],pointRadius:0}]},options:{...A,plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.dataset.label+': '+rub(c.raw)}}},scales:{y:{ticks:{callback:m1},title:{display:true,text:'млн ₽'}},x:{ticks:{maxRotation:60,minRotation:45,font:{size:10}}}}}});
 }
-// аналитическая записка
+
 const CKT=['Замерить конверсию и средний чек на пилотной точке в течение двух недель','Подтвердить фактическую мощность печей и выход продукции','Договориться с поставщиками об отсрочке платежа 20-30 дней','Перевести маркетинг в процент от выручки и утвердить бюджет','Подготовить консервативный сценарий для показа клиентам'];
 let SEL=new Set(),CK=CKT.map(()=>0);
 const SV={h:'высокий',w:'проверить',o:'норма',i:'ограничение'};
@@ -237,7 +238,6 @@ $('#note').addEventListener('click',e=>{const t=e.target;
  else if(t.id==='ap'){P=mods();SEL.clear();pn.querySelectorAll('input').forEach(i=>i.value=P[i.dataset.k]);render()}
  else if(t.id==='cl'){SEL.clear();sol()}});
 $('#note').addEventListener('change',e=>{const c=e.target.dataset.c;if(c!=null){CK[c]=e.target.checked?1:0;$('#cc').textContent=CK.filter(Boolean).length}});
-// панель ввода
 const pn=$('#fields');
 F.forEach(([k,l,st,mn,mx])=>{const d=document.createElement('label');d.textContent=l;const i=document.createElement('input');
  if(st==='date'){i.type='date'}else{i.type='number';i.inputMode='decimal';i.step=st;i.min=mn;i.max=mx}
@@ -253,50 +253,38 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
  $('#d').classList.toggle('hide',b.dataset.t!=='d');$('#r').classList.toggle('hide',b.dataset.t!=='r');$('#n').classList.toggle('hide',b.dataset.t!=='n')});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
-render();
-// Вставь сюда ссылку, которую ты скопировал из Google Таблиц
+
+// Подключение данных из Google Таблицы
 const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdt06yI_5jWiu687rXWtc5AQ3sFelzYEbe3HNnGQbjqWvxUMKxQE6V19dMVpnDUPcdVUk5fJkZ6UNZ/pub?output=csv';
 
 async function loadData() {
+  if (sheetUrl === 'ВСТАВЬ_СЮДА_СВОЮ_ССЫЛКУ_CSV') {
+    render();
+    return;
+  }
   try {
-    // 1. Скачиваем данные
     const response = await fetch(sheetUrl);
     const csvText = await response.text();
-    
-    // 2. Разбиваем текст на строки
     const rows = csvText.split('\n');
-    
-    // 3. Проходим по каждой строке таблицы
     rows.forEach(row => {
-      // Разбиваем строку на 2 колонки по запятой
       const cols = row.split(',');
       if (cols.length >= 2) {
         const key = cols[0].trim();
         const value = cols[1].trim();
-        
-        // 4. Обновляем базовые параметры (D) и текущие (P)
         if (key === 'start') {
-          P[key] = value;
-          D[key] = value;
-        } else if (P[key] !== undefined) { // Проверяем, существует ли такой параметр
-          P[key] = parseFloat(value);
-          D[key] = parseFloat(value);
+          P[key] = value; D[key] = value;
+        } else if (P[key] !== undefined) {
+          P[key] = parseFloat(value); D[key] = parseFloat(value);
         }
       }
     });
-    
-    // 5. Обновляем цифры в полях ввода на боковой панели
     pn.querySelectorAll('input').forEach(i => i.value = D[i.dataset.k]);
-    
-    // 6. Рисуем дашборд с новыми данными
     render();
   } catch (error) {
     console.error('Ошибка при загрузке таблицы:', error);
-    // Если произошла ошибка (например, нет интернета), рисуем со старыми данными
     render();
   }
 }
 
-// Запускаем процесс загрузки
 loadData();
 </script></body></html>
