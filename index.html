@@ -254,4 +254,49 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  $('#d').classList.toggle('hide',b.dataset.t!=='d');$('#r').classList.toggle('hide',b.dataset.t!=='r');$('#n').classList.toggle('hide',b.dataset.t!=='n')});
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',render);
 render();
+// Вставь сюда ссылку, которую ты скопировал из Google Таблиц
+const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQdt06yI_5jWiu687rXWtc5AQ3sFelzYEbe3HNnGQbjqWvxUMKxQE6V19dMVpnDUPcdVUk5fJkZ6UNZ/pub?output=csv';
+
+async function loadData() {
+  try {
+    // 1. Скачиваем данные
+    const response = await fetch(sheetUrl);
+    const csvText = await response.text();
+    
+    // 2. Разбиваем текст на строки
+    const rows = csvText.split('\n');
+    
+    // 3. Проходим по каждой строке таблицы
+    rows.forEach(row => {
+      // Разбиваем строку на 2 колонки по запятой
+      const cols = row.split(',');
+      if (cols.length >= 2) {
+        const key = cols[0].trim();
+        const value = cols[1].trim();
+        
+        // 4. Обновляем базовые параметры (D) и текущие (P)
+        if (key === 'start') {
+          P[key] = value;
+          D[key] = value;
+        } else if (P[key] !== undefined) { // Проверяем, существует ли такой параметр
+          P[key] = parseFloat(value);
+          D[key] = parseFloat(value);
+        }
+      }
+    });
+    
+    // 5. Обновляем цифры в полях ввода на боковой панели
+    pn.querySelectorAll('input').forEach(i => i.value = D[i.dataset.k]);
+    
+    // 6. Рисуем дашборд с новыми данными
+    render();
+  } catch (error) {
+    console.error('Ошибка при загрузке таблицы:', error);
+    // Если произошла ошибка (например, нет интернета), рисуем со старыми данными
+    render();
+  }
+}
+
+// Запускаем процесс загрузки
+loadData();
 </script></body></html>
